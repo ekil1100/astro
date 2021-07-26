@@ -89,12 +89,15 @@ async function generateHydrateScript(scriptOptions: HydrateScriptOptions, metada
   return () => {};
 `;
 
-  const hydrationScript = `<script type="module">
-import setup from '/_astro_frontend/hydrate/${hydrate}.js';
+  const hydrationScript = `<!-- @astro/hydration begin -->
+<script type="module">
+import setup from 'astro_core:hydrate/${hydrate}.js';
 setup("${astroId}", {${metadata.value ? `value: "${metadata.value}"` : ''}}, async () => {
   ${hydrationSource}
 });
-</script>`;
+</script>
+<!-- @astro/hydration end -->
+`;
 
   return hydrationScript;
 }

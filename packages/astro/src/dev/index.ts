@@ -125,17 +125,6 @@ export default async function dev(config: AstroConfig, options: DevOptions): Pro
         }
       }
 
-      // /_astro
-      if (reqURL.startsWith('/_astro/')) {
-        return proxyToVite(reqURL.replace(/^\/_astro\//, '/'));
-      }
-
-      // /_astro_frontend
-      if (reqURL.startsWith('/_astro_frontend/')) {
-        const rootDir = new URL('../frontend/', import.meta.url);
-        return proxyToFS(reqURL.replace(/^\/_astro_frontend\//, ''), rootDir);
-      }
-
       // assets, and everything else:
       return proxyToVite(reqURL);
     } catch (err) {

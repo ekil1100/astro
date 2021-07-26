@@ -170,7 +170,7 @@ function generateAttributes(attrs: Record<string, string>): string {
 /** Return absolute component URL */
 function getComponentUrl(astroConfig: AstroConfig, url: string, parentUrl: string | URL) {
   const outUrl = new URL(url, parentUrl);
-  return '/_astro/' + outUrl.href.replace(astroConfig.projectRoot.href, '');
+  return outUrl.href.replace(astroConfig.projectRoot.href, '/');
 }
 
 interface GetComponentWrapperOptions {

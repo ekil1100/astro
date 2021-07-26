@@ -7,8 +7,10 @@ import slash from 'slash';
 import { fileURLToPath } from 'url';
 import { compileComponent } from '../compiler/index.js';
 
-const ASTRO_CSS = 'astro_internal:css';
-const ASTRO_RENDERERS = 'astro_internal:renderers'; // can be anything; just ensure no conflicts with other namespaces
+const ASTRO_CSS = 'astro_core:css'; // can be anything; just ensure no conflicts with other namespaces
+const ASTRO_HYDRATE = 'astro_core:hydrate';
+const ASTRO_RENDERERS = 'astro_core:renderers';
+const HYDRATE_DIR = new URL('../frontend/hydrate/', import.meta.url);
 
 const cssCache = new Map<string, SourceDescription>();
 
@@ -52,7 +54,9 @@ export default function astro(compileOptions: CompileOptions): Plugin {
       }
     },
     resolveId(id) {
-      if (id === ASTRO_RENDERERS || id.startsWith(ASTRO_CSS)) return id;
+      if (id === ASTRO_RENDERERS) return id;
+      if (id.startsWith(ASTRO_CSS)) return id;
+      if (id.startsWith(ASTRO_HYDRATE)) return id;
       return null;
     },
     async load(id) {
@@ -85,6 +89,11 @@ export default function astro(compileOptions: CompileOptions): Plugin {
         const css = cssCache.get(cssID);
         if (css) return css.code;
       }
+      if (id.startsWith(ASTRO_HYDRATE)) {
+        const hydrateID = id.replace(`${ASTRO_HYDRATE}/`, '');
+        return fs.promises.readFile(new URL(hydrateID, HYDRATE_DIR), 'utf8');
+      }
+
       return null;
     },
   };

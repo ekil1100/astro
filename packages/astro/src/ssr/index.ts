@@ -13,6 +13,11 @@ interface SSROptions {
   viteServer: ViteDevServer;
 }
 
+/** Transform code for Vite */
+function resolveIDs(code: string): string {
+  return code.replace(/\/?astro_core:([^\/]+)/g, '/@id/astro_core:$1');
+}
+
 /** Use Vite to SSR URL */
 export default async function ssr({ logging, reqURL, urlMap, origin, viteServer }: SSROptions): Promise<string> {
   // locate file on disk
@@ -42,7 +47,7 @@ export default async function ssr({ logging, reqURL, urlMap, origin, viteServer 
   const deepCssImports = [...deepImports].filter((d) => d.endsWith('.css'));
 
   // SSR HTML
-  let html = await mod.__renderPage({
+  let rawHTML: string = await mod.__renderPage({
     request: {
       // params should go here when implemented
       url: fullURL,
@@ -53,14 +58,33 @@ export default async function ssr({ logging, reqURL, urlMap, origin, viteServer 
     css: mod.css || [],
   });
 
-  // inject Vite client
-  // note: vite.transformIndexHtml(…) will strip hydration scripts
-  html = html.replace(/<head>/, `<head><script type="module" src="/@vite/client"></script>`);
+  // extract hydration code (bug: Vite ruins this for some reason, so we strip it out before Vite can break itself)
+  let html = ''; // non-hydration code
+  let hydrationCode = ''; // hydration code
+  const lines = rawHTML.split('\n');
+  while (lines.length) {
+    let next = lines.shift();
+    if (next === undefined) break; // note: permit empty strings (falsy)!
+    if (next.trim() === '<!-- @astro/hydration begin -->') {
+      hydrationCode += `${next}\n`;
+      while (next.trim() !== '<!-- @astro/hydration end -->') {
+        next = lines.shift();
+        if (next === undefined) break;
+        hydrationCode += `${resolveIDs(next)}\n`;
+      }
+    } else {
+      html += `${next}\n`;
+    }
+  }
+
+  // prepare template with Vite
+  html = await viteServer.transformIndexHtml(reqURL, html);
+
+  // re-inject hydration code
+  html = html.replace('</body>', `${hydrationCode}</body>`);
 
   // inject deeply collected CSS
-  for (const deepCssImport of deepCssImports) {
-    html = html.replace(/<\/head>/, `<script type="module" src="${deepCssImport}"></script></head>`);
-  }
+  html = html.replace('</head>', deepCssImports.map((url) => `  <script type="module" src="${url}"></script>`).join('\n'));
 
   // finish
   return html;
