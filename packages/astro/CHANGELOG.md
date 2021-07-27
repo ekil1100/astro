@@ -1,5 +1,11 @@
 # astro
 
+## 0.18.0-next.7
+
+### Patch Changes
+
+- 4726e34: Fixes cases where buildOptions.site is not respected
+
 ## 0.18.0-next.6
 
 ### Patch Changes
